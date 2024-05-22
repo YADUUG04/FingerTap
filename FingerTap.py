@@ -26,8 +26,14 @@ def main():
         video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
         if video_file_path:
             cap = cv2.VideoCapture(video_file_path)
+            if not cap.isOpened():
+                st.error("Error opening video file. Check the file path.")
+                return
     else:
         cap = cv2.VideoCapture(0)  # Webcam
+        if not cap.isOpened():
+            st.error("Error opening webcam. Check if it's connected and try again.")
+            return
 
     stframe = st.empty()
     graph_placeholder = st.empty()
