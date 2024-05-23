@@ -15,44 +15,45 @@ mpDraw = mp.solutions.drawing_utils
 def calculate_distance(point1, point2):
     return hypot(point2[0] - point1[0], point2[1] - point1[1])
 
-# Define Streamlit app
-def main():
-    st.title("Finger Tap Detection")
+# Initialize variables
+start_time = time.time()
+speeds_graph = []
+tap_count = 0
+tap_data = []
+tap_timestamps = []  # List to store timestamps of each tap
 
-    # Get user input to choose between webcam and saved video
-    input_source = st.radio("Select input source:", ("Webcam", "Video"))
+# Thresholds
+initial_touch_threshold = 20  # Adjust sensitivity for initial touch
+separation_threshold = 20  # Adjust sensitivity for separation
+tap_cooldown = 0.2  # Decreased cooldown for faster tap detection
 
-    if input_source == "Video":
-        video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
-        if video_file_path:
-            cap = cv2.VideoCapture(video_file_path)
-            if not cap.isOpened():
-                st.error("Error opening video file. Check the file path.")
-                return
+# Get user input to choose between webcam and saved video
+user_choice = st.selectbox("Choose input source", ('webcam', 'video'))
+input_source = 0  # Default to webcam
+
+if user_choice == 'video':
+    video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
+    if video_file_path:
+        input_source = video_file_path
     else:
-        cap = cv2.VideoCapture(0)  # Webcam
-        if not cap.isOpened():
-            st.error("Error opening webcam. Check if it's connected and try again.")
-            return
+        st.error("Please provide a valid video file path.")
 
-    stframe = st.empty()
-    graph_placeholder = st.empty()
+# File path for saving CSV
+csv_file_path = 'finger_tap_data.csv'
 
-    # Initialize variables
-    start_time = time.time()
-    speeds_graph = []
-    tap_count = 0
-    tap_data = []
-    tap_timestamps = []  # List to store timestamps of each tap
+# Create a figure for the plot
+fig, ax = plt.subplots()
 
-    # Thresholds
-    initial_touch_threshold = 20  # Adjust sensitivity for initial touch
-    separation_threshold = 20  # Adjust sensitivity for separation
+def main():
+    global cap
+    cap = cv2.VideoCapture(input_source)
+
+    if not cap.isOpened():
+        st.error("Error: Could not open video source.")
+        return
 
     hand_start_position = None
     tap_detected = False
-
-    fig, ax = plt.subplots()  # Create figure and axis objects
 
     while True:
         success, img = cap.read()
@@ -119,13 +120,16 @@ def main():
                             # Update the plot
                             speeds_graph.append(distance_pixels)
                             ax.clear()
-                            ax.plot(speeds_graph, color='b')  # Plot on existing axis
+                            ax.plot(speeds_graph)
                             ax.set_title('Finger Tap Distance Over Time')
                             ax.set_xlabel('Frames')
                             ax.set_ylabel('Distance (pixels)')
-                            graph_placeholder.pyplot(fig)
+                            st.pyplot(fig)
 
-        stframe.image(img, channels="BGR")
+            mpDraw.draw_landmarks(img, handlandmark, mpHands.HAND_CONNECTIONS)
+
+        cv2.imshow('Image', img)
+
         if cv2.waitKey(1) & 0xff == ord('q'):
             break
 
@@ -136,7 +140,6 @@ def main():
         tap_durations.append(duration)
 
     # Save data to CSV
-    csv_file_path = 'finger_tap_data.csv'
     with open(csv_file_path, mode='w', newline='') as file:
         fieldnames = ['Tap Count', 'Time', 'Distance (pixels)', 'Distance (cm)', 'Formatted Distance', 'Start Position', 'Tap Duration']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -145,6 +148,9 @@ def main():
         for i, row in enumerate(tap_data):
             row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
             writer.writerow(row)
+
+    cap.release()
+    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
