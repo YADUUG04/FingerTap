@@ -49,7 +49,7 @@ def main():
     cap = cv2.VideoCapture(input_source)
 
     if not cap.isOpened():
-        st.error("Error: Could not open video source.")
+        st.error("Error: Could not open video source. Please check the input source.")
         return
 
     hand_start_position = None
