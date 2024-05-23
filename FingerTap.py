@@ -5,6 +5,10 @@ import time
 import csv
 import matplotlib.pyplot as plt
 from math import hypot
+import numpy as np
+from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration, WebRtcMode
+import av
+from PIL import Image
 
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
@@ -27,40 +31,21 @@ initial_touch_threshold = 20  # Adjust sensitivity for initial touch
 separation_threshold = 20  # Adjust sensitivity for separation
 tap_cooldown = 0.2  # Decreased cooldown for faster tap detection
 
-# Get user input to choose between webcam and saved video
-user_choice = st.selectbox("Choose input source", ('webcam', 'video'))
-input_source = 1  # Default to webcam
-
-if user_choice == 'video':
-    video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
-    if video_file_path:
-        input_source = video_file_path
-    else:
-        st.error("Please provide a valid video file path.")
-
 # File path for saving CSV
 csv_file_path = 'finger_tap_data.csv'
 
 # Create a figure for the plot
 fig, ax = plt.subplots()
 
-def main():
-    global cap
-    cap = cv2.VideoCapture(input_source)
+class VideoProcessor(VideoProcessorBase):
+    def __init__(self):
+        self.hand_start_position = None
+        self.tap_detected = False
 
-    if not cap.isOpened():
-        st.error("Error: Could not open video source. Please check the input source.")
-        return
+    def recv(self, frame):
+        global tap_count, tap_data, speeds_graph, tap_timestamps
 
-    hand_start_position = None
-    tap_detected = False
-
-    while True:
-        success, img = cap.read()
-        if not success:
-            st.error("Error reading frame. Check video source or file path.")
-            break
-
+        img = frame.to_ndarray(format="bgr24")
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
         # Process hand landmarks
@@ -97,13 +82,13 @@ def main():
                         distance_formatted = "{:.2f} cm".format(distance_cm)  # Example format: two decimal places
 
                         # Tap detection logic
-                        if not tap_detected and distance_pixels < initial_touch_threshold:
-                            tap_detected = True
-                            hand_start_position = index_tip
+                        if not self.tap_detected and distance_pixels < initial_touch_threshold:
+                            self.tap_detected = True
+                            self.hand_start_position = index_tip
                             tap_timestamps.append(time.time())  # Record timestamp of the tap
 
-                        if tap_detected and distance_pixels > separation_threshold:
-                            tap_detected = False
+                        if self.tap_detected and distance_pixels > separation_threshold:
+                            self.tap_detected = False
                             tap_count += 1
                             st.write(f"Tap {tap_count} detected! Distance: {distance_formatted}")
 
@@ -114,7 +99,7 @@ def main():
                                 'Distance (pixels)': distance_pixels,
                                 'Distance (cm)': distance_cm,
                                 'Formatted Distance': distance_formatted,
-                                'Start Position': hand_start_position
+                                'Start Position': self.hand_start_position
                             })
 
                             # Update the plot
@@ -128,10 +113,33 @@ def main():
 
             mpDraw.draw_landmarks(img, handlandmark, mpHands.HAND_CONNECTIONS)
 
-        cv2.imshow('Image', img)
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-        if cv2.waitKey(1) & 0xff == ord('q'):
-            break
+def main():
+    st.title("Finger Tap Detection")
+
+    # Get user input to choose between webcam and saved video
+    user_choice = st.selectbox("Choose input source", ('webcam', 'video'))
+    input_source = 0  # Default to webcam
+
+    if user_choice == 'video':
+        video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
+        if video_file_path:
+            input_source = video_file_path
+        else:
+            st.error("Please provide a valid video file path.")
+
+    webrtc_ctx = webrtc_streamer(
+        key="example",
+        mode=WebRtcMode.SENDRECV,
+        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]},
+        media_stream_constraints={"video": True, "audio": False},
+        video_processor_factory=VideoProcessor,
+        async_processing=True,
+    )
+
+    if webrtc_ctx.video_processor:
+        pass  # The VideoProcessor class handles the processing
 
     # Calculate the time of each individual tap
     tap_durations = []
@@ -148,9 +156,6 @@ def main():
         for i, row in enumerate(tap_data):
             row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
             writer.writerow(row)
-
-    cap.release()
-    cv2.destroyAllWindows()
 
 if __name__ == "__main__":
     main()
