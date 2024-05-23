@@ -118,17 +118,6 @@ class VideoProcessor(VideoProcessorBase):
 def main():
     st.title("Finger Tap Detection")
 
-    # Get user input to choose between webcam and saved video
-    user_choice = st.selectbox("Choose input source", ('webcam', 'video'))
-    input_source = 0  # Default to webcam
-
-    if user_choice == 'video':
-        video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
-        if video_file_path:
-            input_source = video_file_path
-        else:
-            st.error("Please provide a valid video file path.")
-
     webrtc_ctx = webrtc_streamer(
         key="example",
         mode=WebRtcMode.SENDRECV,
