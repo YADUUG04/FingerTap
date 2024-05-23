@@ -124,7 +124,6 @@ def main():
             stframe.image(img, channels="BGR")
 
         cap.release()
-        cv2.destroyAllWindows()
 
         # Calculate the time of each individual tap
         tap_durations = []
@@ -142,6 +141,14 @@ def main():
             for i, row in enumerate(tap_data):
                 row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
                 writer.writerow(row)
+
+        # Add a download button for the CSV file
+        st.download_button(
+            label="Download Finger Tap Data (CSV)",
+            data=open(csv_file_path, 'rb'),
+            file_name="finger_tap_data.csv",
+            mime="text/csv"
+        )
 
 if __name__ == "__main__":
     main()
