@@ -29,7 +29,7 @@ tap_cooldown = 0.2  # Decreased cooldown for faster tap detection
 
 # Get user input to choose between webcam and saved video
 user_choice = st.selectbox("Choose input source", ('webcam', 'video'))
-input_source = -1  # Default to webcam
+input_source = 1  # Default to webcam
 
 if user_choice == 'video':
     video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
