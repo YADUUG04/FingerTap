@@ -19,109 +19,109 @@ def calculate_distance(point1, point2):
 def main():
     st.title("Finger Tap Detection")
 
-    # Get user input to choose between webcam and saved video
-    input_source = st.radio("Select input source:", ("Webcam", "Video"))
+    # Get user input for video file upload
+    video_file = st.file_uploader("Upload a video file", type=["mp4"])
 
-    cap = None
-    if input_source == "Video":
-        video_file_path = st.text_input("Enter the path to the video file (e.g., video.mp4):")
-        if video_file_path:
-            cap = cv2.VideoCapture(video_file_path)
-            if not cap.isOpened():
-                st.error("Error opening video file. Check the file path.")
-                return
-        else:
-            st.warning("Please enter a valid video file path.")
-            return
-    else:
-        cap = cv2.VideoCapture(0)  # Webcam
-        if not cap.isOpened():
-            st.error("Error opening webcam. Check if it's connected and try again.")
-            return
+    if video_file is not None:
+        # Save the uploaded file to disk
+        with open("uploaded_video.mp4", "wb") as f:
+            f.write(video_file.read())
 
-    stframe = st.empty()
-    graph_placeholder = st.empty()
+        cap = cv2.VideoCapture("uploaded_video.mp4")  # Use the file path as input to VideoCapture
 
-    # Initialize variables
-    start_time = time.time()
-    speeds_graph = []
-    tap_count = 0
-    tap_data = []
-    tap_timestamps = []  # List to store timestamps of each tap
+        stframe = st.empty()
+        graph_placeholder = st.empty()
 
-    # Thresholds
-    initial_touch_threshold = 50  # Adjust sensitivity for initial touch
-    separation_threshold = 50  # Adjust sensitivity for separation
+        # Initialize variables
+        start_time = time.time()
+        speeds_graph = []
+        tap_count = 0
+        tap_data = []
+        tap_timestamps = []  # List to store timestamps of each tap
+        tap_speeds = []  # List to store speeds of each tap
 
-    hand_start_position = None
-    tap_detected = False
+        # Thresholds
+        initial_touch_threshold = 50  # Adjust sensitivity for initial touch
+        separation_threshold = 50  # Adjust sensitivity for separation
 
-    fig, ax = plt.subplots()  # Create figure and axis objects
+        hand_start_position = None
+        tap_detected = False
 
-    while cap.isOpened():
-        success, img = cap.read()
-        if not success:
-            st.warning("No frame to read from the video. Exiting.")
-            break
+        fig, ax = plt.subplots()  # Create figure and axis objects
 
-        img = cv2.resize(img, (640, 480))  # Downsample the video frame
-        imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        while cap.isOpened():
+            success, img = cap.read()
+            if not success:
+                st.warning("No frame to read from the video. Exiting.")
+                break
 
-        # Process hand landmarks
-        results = hands.process(imgRGB)
+            imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-        lmList = []
-        thumb_tip = None
-        index_tip = None
+            # Process hand landmarks
+            results = hands.process(imgRGB)
 
-        if results.multi_hand_landmarks:
-            for handlandmark in results.multi_hand_landmarks:
-                for id, lm in enumerate(handlandmark.landmark):
-                    h, w, _ = img.shape
-                    cx, cy = int(lm.x * w), int(lm.y * h)
-                    lmList.append([id, cx, cy])
+            lmList = []
+            index_speed = 0
+            thumb_tip = None
+            index_tip = None
 
-                if len(lmList) >= 21:
-                    index_tip = lmList[8][1], lmList[8][2]
-                    thumb_tip = lmList[4][1], lmList[4][2]
+            if results.multi_hand_landmarks:
+                for handlandmark in results.multi_hand_landmarks:
+                    for id, lm in enumerate(handlandmark.landmark):
+                        h, w, _ = img.shape
+                        cx, cy = int(lm.x * w), int(lm.y * h)
+                        lmList.append([id, cx, cy])
 
-                    cv2.circle(img, index_tip, 10, (0, 255, 0), cv2.FILLED)
-                    cv2.circle(img, thumb_tip, 10, (0, 255, 0), cv2.FILLED)
+                    if len(lmList) >= 21:
+                        index_tip = lmList[8][1], lmList[8][2]
+                        thumb_tip = lmList[4][1], lmList[4][2]
 
-                    if index_tip is not None and thumb_tip is not None:
-                        # Draw a line between index finger and thumb
-                        cv2.line(img, index_tip, thumb_tip, (255, 0, 0), 2)
+                        cv2.circle(img, index_tip, 10, (0, 255, 0), cv2.FILLED)
+                        cv2.circle(img, thumb_tip, 10, (0, 255, 0), cv2.FILLED)
 
-                        # Calculate the distance between the thumb and index finger
-                        distance_pixels = calculate_distance(thumb_tip, index_tip)
-                        distance_cm = distance_pixels * 0.1  # Placeholder conversion factor (adjust as needed)
+                        if index_tip is not None and thumb_tip is not None:
+                            # Draw a line between index finger and thumb
+                            cv2.line(img, index_tip, thumb_tip, (255, 0, 0), 2)
 
-                        # Format the distance value
-                        distance_formatted = "{:.2f} cm".format(distance_cm)  # Example format: two decimal places
+                            # Calculate the distance between the thumb and index finger
+                            distance_pixels = calculate_distance(thumb_tip, index_tip)
+                            distance_cm = distance_pixels * 0.1  # Placeholder conversion factor (adjust as needed)
 
-                        # Tap detection logic
-                        if not tap_detected and distance_pixels < initial_touch_threshold:
-                            tap_detected = True
-                            hand_start_position = index_tip
-                            tap_timestamps.append(time.time())  # Record timestamp of the tap
+                            # Format the distance value
+                            distance_formatted = "{:.2f} cm".format(distance_cm)  # Example format: two decimal places
 
-                        if tap_detected and distance_pixels > separation_threshold:
-                            tap_detected = False
-                            tap_count += 1
-                            st.write(f"Tap {tap_count} detected! Distance: {distance_formatted}")
+                            # Tap detection logic
+                            if not tap_detected and distance_pixels < initial_touch_threshold:
+                                tap_detected = True
+                                hand_start_position = index_tip
+                                tap_timestamps.append(time.time())  # Record timestamp of the tap
 
-                            # Save data
-                            tap_data.append({
-                                'Tap Count': tap_count,
-                                'Time': time.time() - start_time,
-                                'Distance (pixels)': distance_pixels,
-                                'Distance (cm)': distance_cm,
-                                'Formatted Distance': distance_formatted,
-                                'Start Position': hand_start_position
-                            })
+                            if tap_detected and distance_pixels > separation_threshold:
+                                tap_detected = False
+                                tap_count += 1
+                                st.write(f"Tap {tap_count} detected! Distance: {distance_formatted}")
 
-                            # Update the plot every 10 taps to reduce computation
-                            if tap_count % 10 == 0:
+                                # Calculate tap duration
+                                tap_end_time = time.time()
+                                tap_duration = tap_end_time - tap_timestamps[-1]
+
+                                # Calculate tap speed
+                                tap_speed = distance_cm / tap_duration  # cm/second
+                                tap_speeds.append(tap_speed)
+
+                                # Save data
+                                tap_data.append({
+                                    'Tap Count': tap_count,
+                                    'Time': tap_end_time - start_time,
+                                    'Distance (pixels)': distance_pixels,
+                                    'Distance (cm)': distance_cm,
+                                    'Formatted Distance': distance_formatted,
+                                    'Start Position': hand_start_position,
+                                    'Tap Duration': tap_duration,
+                                    'Tap Speed (cm/s)': tap_speed
+                                })
+
+                                # Update the plot
                                 speeds_graph.append(distance_pixels)
                                 ax.clear()
                                 ax.plot(speeds_graph, color='b')  # Plot on existing axis
@@ -130,29 +130,34 @@ def main():
                                 ax.set_ylabel('Distance (pixels)')
                                 graph_placeholder.pyplot(fig)
 
-        stframe.image(img, channels="BGR")
-        if cv2.waitKey(1) & 0xff == ord('q'):
-            break
+            stframe.image(img, channels="BGR")
 
-    cap.release()
-    cv2.destroyAllWindows()
+        cap.release()
 
-    # Calculate the time of each individual tap
-    tap_durations = []
-    for i in range(len(tap_timestamps) - 1):
-        duration = tap_timestamps[i + 1] - tap_timestamps[i]
-        tap_durations.append(duration)
+        # Calculate the average tap speed
+        average_speed = sum(tap_speeds) / len(tap_speeds) if tap_speeds else 0
 
-    # Save data to CSV
-    csv_file_path = 'finger_tap_data.csv'
-    with open(csv_file_path, mode='w', newline='') as file:
-        fieldnames = ['Tap Count', 'Time', 'Distance (pixels)', 'Distance (cm)', 'Formatted Distance', 'Start Position', 'Tap Duration']
-        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        # Save data to CSV
+        csv_file_path = 'finger_tap_data.csv'
+        with open(csv_file_path, mode='w', newline='') as file:
+            fieldnames = ['Tap Count', 'Time', 'Distance (pixels)', 'Distance (cm)', 'Formatted Distance',
+                          'Start Position', 'Tap Duration', 'Tap Speed (cm/s)']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
 
-        writer.writeheader()
-        for i, row in enumerate(tap_data):
-            row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
-            writer.writerow(row)
+            writer.writeheader()
+            for row in tap_data:
+                writer.writerow(row)
+
+        # Add average speed to the output
+        st.write(f"Average Tap Speed: {average_speed:.2f} cm/s")
+
+        # Add a download button for the CSV file
+        st.download_button(
+            label="Download Finger Tap Data (CSV)",
+            data=open(csv_file_path, 'rb'),
+            file_name="finger_tap_data.csv",
+            mime="text/csv"
+        )
 
 if __name__ == "__main__":
     main()
