@@ -5,7 +5,6 @@ import time
 import csv
 import matplotlib.pyplot as plt
 from math import hypot
-import gc
 
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
@@ -50,34 +49,28 @@ def main():
     tap_data = []
     tap_timestamps = []  # List to store timestamps of each tap
 
-    # Dynamic thresholds
-    initial_touch_threshold = st.slider("Initial Touch Threshold", 10, 100, 50)  # Adjust sensitivity for initial touch
-    separation_threshold = st.slider("Separation Threshold", 10, 100, 50)  # Adjust sensitivity for separation
+    # Thresholds
+    initial_touch_threshold = 50  # Adjust sensitivity for initial touch
+    separation_threshold = 50  # Adjust sensitivity for separation
 
     hand_start_position = None
     tap_detected = False
 
     fig, ax = plt.subplots()  # Create figure and axis objects
 
-    frame_counter = 0
     while cap.isOpened():
         success, img = cap.read()
         if not success:
             st.warning("No frame to read from the video. Exiting.")
             break
 
-        frame_counter += 1
-        if frame_counter % 5 != 0:  # Process every 5th frame
-            continue
-
+        img = cv2.resize(img, (640, 480))  # Downsample the video frame
         imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        imgRGB = cv2.resize(imgRGB, (640, 480))  # Resize to reduce memory usage
 
         # Process hand landmarks
         results = hands.process(imgRGB)
 
         lmList = []
-        index_speed = 0
         thumb_tip = None
         index_tip = None
 
@@ -127,8 +120,8 @@ def main():
                                 'Start Position': hand_start_position
                             })
 
-                            # Update the plot conditionally
-                            if len(speeds_graph) % 5 == 0:
+                            # Update the plot every 10 taps to reduce computation
+                            if tap_count % 10 == 0:
                                 speeds_graph.append(distance_pixels)
                                 ax.clear()
                                 ax.plot(speeds_graph, color='b')  # Plot on existing axis
@@ -140,9 +133,6 @@ def main():
         stframe.image(img, channels="BGR")
         if cv2.waitKey(1) & 0xff == ord('q'):
             break
-
-        # Explicitly call garbage collection
-        gc.collect()
 
     cap.release()
     cv2.destroyAllWindows()
