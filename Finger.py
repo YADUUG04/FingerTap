@@ -1,20 +1,12 @@
-import cv2
 import streamlit as st
+import cv2
 import mediapipe as mp
 import time
 import csv
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 from math import hypot
-
-# Hiding
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
@@ -48,7 +40,6 @@ def main():
         tap_count = 0
         tap_data = []
         tap_timestamps = []  # List to store timestamps of each tap
-        tap_speeds = []  # List to store speeds of each tap
 
         # Thresholds
         initial_touch_threshold = 50  # Adjust sensitivity for initial touch
@@ -111,24 +102,14 @@ def main():
                                 tap_count += 1
                                 st.write(f"Tap {tap_count} detected! Distance: {distance_formatted}")
 
-                                # Calculate tap duration
-                                tap_end_time = time.time()
-                                tap_duration = tap_end_time - tap_timestamps[-1]
-
-                                # Calculate tap speed
-                                tap_speed = distance_cm / tap_duration  # cm/second
-                                tap_speeds.append(tap_speed)
-
                                 # Save data
                                 tap_data.append({
                                     'Tap Count': tap_count,
-                                    'Time': tap_end_time - start_time,
+                                    'Time': time.time() - start_time,
                                     'Distance (pixels)': distance_pixels,
                                     'Distance (cm)': distance_cm,
                                     'Formatted Distance': distance_formatted,
-                                    'Start Position': hand_start_position,
-                                    'Tap Duration': tap_duration,
-                                    'Tap Speed (cm/s)': tap_speed
+                                    'Start Position': hand_start_position
                                 })
 
                                 # Update the plot
@@ -144,22 +125,36 @@ def main():
 
         cap.release()
 
-        # Calculate the average tap speed
-        average_speed = sum(tap_speeds) / len(tap_speeds) if tap_speeds else 0
+        # Calculate the time of each individual tap and the speed
+        tap_durations = []
+        tap_speeds = []  # List to store speed of each tap
+        for i in range(len(tap_timestamps) - 1):
+            duration = tap_timestamps[i + 1] - tap_timestamps[i]
+            tap_durations.append(duration)
+            # Calculate speed (distance_cm/duration)
+            speed = tap_data[i]['Distance (cm)'] / duration
+            tap_speeds.append(speed)
+            tap_data[i]['Speed (cm/s)'] = speed
 
         # Save data to CSV
         csv_file_path = 'finger_tap_data.csv'
         with open(csv_file_path, mode='w', newline='') as file:
-            fieldnames = ['Tap Count', 'Time', 'Distance (pixels)', 'Distance (cm)', 'Formatted Distance',
-                          'Start Position', 'Tap Duration', 'Tap Speed (cm/s)']
+            fieldnames = ['Tap Count', 'Time', 'Distance (pixels)', 'Distance (cm)', 'Formatted Distance', 'Start Position', 'Tap Duration', 'Speed (cm/s)']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
 
             writer.writeheader()
-            for row in tap_data:
+            for i, row in enumerate(tap_data):
+                row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
                 writer.writerow(row)
 
-        # Add average speed to the output
-        st.write(f"Average Tap Speed: {average_speed:.2f} cm/s")
+        # Calculate and display the average of distance, time, and speed
+        avg_distance = np.mean([tap['Distance (cm)'] for tap in tap_data])
+        avg_time = np.mean(tap_durations)
+        avg_speed = np.mean(tap_speeds)
+
+        st.write(f"Average Distance: {avg_distance:.2f} cm")
+        st.write(f"Average Time per Tap: {avg_time:.2f} s")
+        st.write(f"Average Speed: {avg_speed:.2f} cm/s")
 
         # Add a download button for the CSV file
         st.download_button(
