@@ -8,6 +8,15 @@ import numpy as np
 import os
 from math import hypot
 
+# Hiding
+hide_st_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            </style>
+            """
+
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
 hands = mpHands.Hands(min_detection_confidence=0.2, min_tracking_confidence=0.2, max_num_hands=1)
