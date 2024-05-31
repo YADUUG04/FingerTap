@@ -5,10 +5,9 @@ import time
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-import os
 from math import hypot
 
-# Hiding
+# Hiding Streamlit style
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -16,6 +15,7 @@ hide_st_style = """
             header {visibility: hidden;}
             </style>
             """
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
@@ -32,8 +32,10 @@ def main():
 
     # Get user input for video file upload
     video_file = st.file_uploader("Upload a video file", type=["mp4"])
+    start_button = st.button("Start Analysis")
+    stop_button = st.button("Stop Analysis")
 
-    if video_file is not None:
+    if video_file is not None and start_button:
         # Save the uploaded file to disk
         with open("uploaded_video.mp4", "wb") as f:
             f.write(video_file.read())
@@ -59,11 +61,14 @@ def main():
 
         fig, ax = plt.subplots()  # Create figure and axis objects
 
-        while cap.isOpened():
+        while cap.isOpened() and not stop_button:
             success, img = cap.read()
             if not success:
                 st.warning("No frame to read from the video. Exiting.")
                 break
+
+            # Reduce the resolution of the frame
+            img = cv2.resize(img, (640, 360))
 
             imgRGB = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
