@@ -75,7 +75,7 @@ def main():
 
         fig, ax = plt.subplots()  # Create figure and axis objects
 
-        while cap.isOpened():
+        while cap.isOpened() and not stop_button:
             success, img = cap.read()
             if not success:
                 st.warning("No frame to read from the video. Exiting.")
@@ -218,7 +218,7 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
     c.drawString(50, height - 100, f"Age: {age}")
     c.drawString(50, height - 120, f"Sex: {sex}")
 
-    # Average statistics
+    # Add the average statistics
     c.drawString(50, height - 160, f"Average Distance: {avg_distance:.2f} cm")
     c.drawString(50, height - 180, f"Average Time per Tap: {avg_time:.2f} s")
     c.drawString(50, height - 200, f"Average Speed: {avg_speed:.2f} cm/s")
@@ -241,7 +241,11 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
         if y < 50:
             c.showPage()
             y = height - 50
-        c.drawString(50, y, f"Tap {tap['Tap Count']}: Distance = {tap['Distance (cm)']:.2f} cm, Duration = {tap.get('Tap Duration', 'N/A')}, Speed = {tap.get('Speed (cm/s)', 'N/A'):.2f} cm/s")
+        tap_duration = tap.get('Tap Duration', 'N/A')
+        tap_speed = tap.get('Speed (cm/s)', 'N/A')
+        tap_duration_str = f"{tap_duration:.2f} s" if isinstance(tap_duration, (int, float)) else "N/A"
+        tap_speed_str = f"{tap_speed:.2f} cm/s" if isinstance(tap_speed, (int, float)) else "N/A"
+        c.drawString(50, y, f"Tap {tap['Tap Count']}: Distance = {tap['Distance (cm)']:.2f} cm, Duration = {tap_duration_str}, Speed = {tap_speed_str}")
         y -= 20
 
     c.save()
