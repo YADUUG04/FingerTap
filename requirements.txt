@@ -6,3 +6,4 @@ numpy
 streamlit-webrtc
 pillow
 av
+reportlab
