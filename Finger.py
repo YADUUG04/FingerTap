@@ -1,4 +1,4 @@
-import streamlit as st                                                            import streamlit as st
+import streamlit as st
 import cv2
 import mediapipe as mp
 import time
@@ -220,31 +220,31 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
 
     # Average statistics
     c.drawString(50, height - 160, f"Average Distance: {avg_distance:.2f} cm")
-    c.drawString(50, height - 180, f”Average Time per Tap: {avg_time:.2f} s”)
-c.drawString(50, height - 200, f”Average Speed: {avg_speed:.2f} cm/s”)
+    c.drawString(50, height - 180, f"Average Time per Tap: {avg_time:.2f} s")
+    c.drawString(50, height - 200, f"Average Speed: {avg_speed:.2f} cm/s")
 
-# Add the graph
-with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
-    fig, ax = plt.subplots()
-    ax.plot(speeds_graph, color='b')
-    ax.set_title('Finger Tap Distance Over Time')
-    ax.set_xlabel('Frames')
-    ax.set_ylabel('Distance (pixels)')
-    fig.savefig(tmpfile.name)
-    plt.close(fig)
-    c.drawImage(tmpfile.name, 50, height - 400, width=500, height=200)
+    # Add the graph
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
+        fig, ax = plt.subplots()
+        ax.plot(speeds_graph, color='b')
+        ax.set_title('Finger Tap Distance Over Time')
+        ax.set_xlabel('Frames')
+        ax.set_ylabel('Distance (pixels)')
+        fig.savefig(tmpfile.name)
+        plt.close(fig)
+        c.drawImage(tmpfile.name, 50, height - 400, width=500, height=200)
 
-# Add the detailed data table
-c.drawString(50, height - 440, "Detailed Data:")
-y = height - 460
-for tap in tap_data:
-    if y < 50:
-        c.showPage()
-        y = height - 50
-    c.drawString(50, y, f"Tap {tap['Tap Count']}: Distance = {tap['Distance (cm)']:.2f} cm, Duration = {tap.get('Tap Duration', 'N/A')}, Speed = {tap.get('Speed (cm/s)', 'N/A'):.2f} cm/s")
-    y -= 20
+    # Add the detailed data table
+    c.drawString(50, height - 440, "Detailed Data:")
+    y = height - 460
+    for tap in tap_data:
+        if y < 50:
+            c.showPage()
+            y = height - 50
+        c.drawString(50, y, f"Tap {tap['Tap Count']}: Distance = {tap['Distance (cm)']:.2f} cm, Duration = {tap.get('Tap Duration', 'N/A')}, Speed = {tap.get('Speed (cm/s)', 'N/A'):.2f} cm/s")
+        y -= 20
 
-c.save()
+    c.save()
 
-if name == “main”:
-main()
+if __name__ == "__main__":
+    main()
