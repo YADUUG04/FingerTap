@@ -29,6 +29,51 @@ mpDraw = mp.solutions.drawing_utils
 def calculate_distance(point1, point2):
     return hypot(point2[0] - point1[0], point2[1] - point1[1])
 
+# Define a function to generate PDF report
+def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, avg_distance, avg_time, avg_speed):
+    c = canvas.Canvas(pdf_file_path, pagesize=letter)
+    width, height = letter
+
+    # Title and user information
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(200, height - 40, "Finger Tap Detection Report")
+    c.setFont("Helvetica", 12)
+    c.drawString(50, height - 80, f"Name: {name}")
+    c.drawString(50, height - 100, f"Age: {age}")
+    c.drawString(50, height - 120, f"Sex: {sex}")
+
+    # Add the average statistics
+    c.drawString(50, height - 160, f"Average Distance: {avg_distance:.2f} cm")
+    c.drawString(50, height - 180, f"Average Time per Tap: {avg_time:.2f} s")
+    c.drawString(50, height - 200, f"Average Speed: {avg_speed:.2f} cm/s")
+
+    # Add the graph
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
+        fig, ax = plt.subplots()
+        ax.plot(speeds_graph, color='b')
+        ax.set_title('Finger Tap Distance Over Time')
+        ax.set_xlabel('Frames')
+        ax.set_ylabel('Distance (pixels)')
+        fig.savefig(tmpfile.name)
+        plt.close(fig)
+        c.drawImage(tmpfile.name, 50, height - 400, width=500, height=200)
+
+    # Add the detailed data table
+    c.drawString(50, height - 440, "Detailed Data:")
+    y = height - 460
+    for tap in tap_data:
+        if y < 50:
+            c.showPage()
+            y = height - 50
+        tap_duration = tap.get('Tap Duration', 'N/A')
+        tap_speed = tap.get('Speed (cm/s)', 'N/A')
+        tap_duration_str = f"{tap_duration:.2f} s" if isinstance(tap_duration, (int, float)) else "N/A"
+        tap_speed_str = f"{tap_speed:.2f} cm/s" if isinstance(tap_speed, (int, float)) else "N/A"
+        c.drawString(50, y, f"Tap {tap['Tap Count']}: Distance = {tap['Distance (cm)']:.2f} cm, Duration = {tap_duration_str}, Speed = {tap_speed_str}")
+        y -= 20
+
+    c.save()
+
 def main():
     st.title("Finger Tap Detection")
 
@@ -64,7 +109,7 @@ def main():
         tap_data = []
         tap_timestamps = []  # List to store timestamps of each tap
 
-        # Thresholds
+                # Thresholds
         initial_touch_threshold = 50  # Adjust sensitivity for initial touch
         separation_threshold = 50  # Adjust sensitivity for separation
 
@@ -150,6 +195,7 @@ def main():
                                     plt.close(fig)  # Close the figure to release memory
 
                 stframe.image(img, channels="BGR")
+                
         finally:
             cap.release()  # Release the video capture object
             
@@ -158,5 +204,35 @@ def main():
             except cv2.error as e:
                 print("Error occurred while closing OpenCV windows:", e)
 
-if __name__ == "__main__":
-    main()
+        # Calculate the time of each individual tap and the speed
+        tap_durations = []
+        tap_speeds = []  # List to store speed of each tap
+        for i in range(len(tap_timestamps) - 1):
+            duration = tap_timestamps[i + 1] - tap_timestamps[i]
+            tap_durations.append(duration)
+            # Calculate speed (distance_cm/duration)
+            speed = tap_data[i]['Distance (cm)'] / duration
+            tap_speeds.append(speed)
+            tap_data[i]['Speed (cm/s)'] = speed
+
+        # Save data to CSV
+        csv_file_path = 'finger_tap_data.csv'
+        with open(csv_file_path, mode='w', newline='') as file:
+            fieldnames = ['Tap Count', 'Time', 'Distance (pixels)', 'Distance (cm)', 'Formatted Distance', 'Start Position', 'Tap Duration', 'Speed (cm/s)']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+
+            writer.writeheader()
+            for i, row in enumerate(tap_data):
+                row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
+                        avg_distance = np.mean([tap['Distance (cm)'] for tap in tap_data])
+        avg_time = np.mean(tap_durations) if tap_durations else 0
+        avg_speed = np.mean(tap_speeds) if tap_speeds else 0
+
+        # Generate PDF report
+        pdf_file_path = 'finger_tap_report.pdf'
+        generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, avg_distance, avg_time, avg_speed)
+
+        # Provide download links for CSV and PDF
+        st.markdown(f"Download [CSV](./{csv_file_path})")
+        st.markdown(f"Download [PDF Report](./{pdf_file_path})")
+
