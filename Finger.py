@@ -150,13 +150,13 @@ def main():
                                     plt.close(fig)  # Close the figure to release memory
 
                 stframe.image(img, channels="BGR")
-        finally:
+      finally:
             cap.release()  # Release the video capture object
+            
             try:
-    cv2.destroyAllWindows()  # Close all OpenCV windows
-except cv2.error as e:
-    print("Error occurred while closing OpenCV windows:", e)
-
+                cv2.destroyAllWindows()  # Close all OpenCV windows
+            except cv2.error as e:
+                print("Error occurred while closing OpenCV windows:", e)
 
 if __name__ == "__main__":
     main()
