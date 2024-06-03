@@ -2,12 +2,12 @@ import streamlit as st
 import cv2
 import mediapipe as mp
 import time
-import csv
 import matplotlib.pyplot as plt
-import numpy as np
 from math import hypot
+import csv
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
+import numpy as np
 import tempfile
 
 # Hiding Streamlit style
@@ -33,27 +33,26 @@ def calculate_distance(point1, point2):
 def main():
     st.title("Finger Tap Detection")
 
-    # User registration
-    st.header("Patient Registration")
-    name = st.text_input("Name")
-    age = st.number_input("Age", min_value=0)
-    sex = st.selectbox("Sex", ["Male", "Female", "Other"])
-    submit_button = st.button("Submit")
+    # Get user input to choose between webcam and saved video
+    user_choice = st.radio("Choose input source:", ("Webcam", "Video"))
 
-    if submit_button:
-        st.success(f"Registered: {name}, {age}, {sex}")
+    if user_choice == "Video":
+        uploaded_file = st.file_uploader("Upload a video file", type=["mp4"])
 
-    # Get user input for video file upload
-    st.header("Upload Video for Analysis")
-    video_file = st.file_uploader("Upload a video file", type=["mp4"])
+        if uploaded_file:
+            # Save the uploaded file to disk
+            with open("uploaded_video.mp4", "wb") as f:
+                f.write(uploaded_file.read())
+
+            input_source = "uploaded_video.mp4"
+
+    else:
+        input_source = 0  # Webcam
+
     start_button = st.button("Start Analysis")
 
-    if video_file is not None and start_button:
-        # Save the uploaded file to disk
-        with open("uploaded_video.mp4", "wb") as f:
-            f.write(video_file.read())
-
-        cap = cv2.VideoCapture("uploaded_video.mp4")  # Use the file path as input to VideoCapture
+    if start_button:
+        cap = cv2.VideoCapture(input_source)
 
         stframe = st.empty()
         graph_placeholder = st.empty()
@@ -66,8 +65,8 @@ def main():
         tap_timestamps = []  # List to store timestamps of each tap
 
         # Thresholds
-        initial_touch_threshold = 20  # Adjust sensitivity for initial touch
-        separation_threshold = 20  # Adjust sensitivity for separation
+        initial_touch_threshold = 50  # Adjust sensitivity for initial touch
+        separation_threshold = 50  # Adjust sensitivity for separation
 
         hand_start_position = None
         tap_detected = False
@@ -152,7 +151,6 @@ def main():
             stframe.image(img, channels="BGR")
 
         cap.release()
-        # cv2.destroyAllWindows()  # Comment out this line
 
         # Calculate the time of each individual tap and the speed
         tap_durations = []
@@ -195,7 +193,7 @@ def main():
 
         # Generate a PDF report
         pdf_file_path = 'finger_tap_report.pdf'
-        generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, avg_distance, avg_time, avg_speed)
+        generate_pdf_report(pdf_file_path, tap_data, speeds_graph, avg_distance, avg_time, avg_speed)
 
         # Add a download button for the PDF report
         st.download_button(
@@ -205,22 +203,18 @@ def main():
             mime="application/pdf"
         )
 
-def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, avg_distance, avg_time, avg_speed):
+def generate_pdf_report(pdf_file_path, tap_data, speeds_graph, avg_distance, avg_time, avg_speed):
     c = canvas.Canvas(pdf_file_path, pagesize=letter)
     width, height = letter
 
     # Title and user information
     c.setFont("Helvetica-Bold", 16)
     c.drawString(200, height - 40, "Finger Tap Detection Report")
-    c.setFont("Helvetica", 12)
-    c.drawString(50, height - 80, f"Name: {name}")
-    c.drawString(50, height - 100, f"Age: {age}")
-    c.drawString(50, height - 120, f"Sex: {sex}")
 
     # Add the average statistics
-    c.drawString(50, height - 160, f"Average Distance: {avg_distance:.2f} cm")
-    c.drawString(50, height - 180, f"Average Time per Tap: {avg_time:.2f} s")
-    c.drawString(50, height - 200, f"Average Speed: {avg_speed:.2f} cm/s")
+    c.drawString(50, height - 80, f"Average Distance: {avg_distance:.2f} cm")
+    c.drawString(50, height - 100, f"Average Time per Tap: {avg_time:.2f} s")
+    c.drawString(50, height - 120, f"Average Speed: {avg_speed:.2f} cm/s")
 
     # Add the graph
     with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
@@ -231,11 +225,11 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
         ax.set_ylabel('Distance (pixels)')
         fig.savefig(tmpfile.name)
         plt.close(fig)
-        c.drawImage(tmpfile.name, 50, height - 400, width=500, height=200)
+        c.drawImage(tmpfile.name, 50, height - 220, width=500, height=200)
 
     # Add the detailed data table
-    c.drawString(50, height - 440, "Detailed Data:")
-    y = height - 460
+    c.drawString(50, height - 260, "Detailed Data:")
+    y = height - 280
     for tap in tap_data:
         if y < 50:
             c.showPage()
@@ -251,3 +245,4 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
 
 if __name__ == "__main__":
     main()
+
