@@ -22,7 +22,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
-hands = mpHands.Hands(min_detection_confidence=0.2, min_tracking_confidence=0.2, max_num_hands=1)
+hands = mpHands.Hands(min_detection_confidence=0.2, min_tracking_confidence=0.2, max_num_hands=2)
 mpDraw = mp.solutions.drawing_utils
 
 # Define a function to calculate the distance between two points
