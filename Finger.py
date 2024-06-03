@@ -66,8 +66,8 @@ def main():
         tap_timestamps = []  # List to store timestamps of each tap
 
         # Thresholds
-        initial_touch_threshold = 20  # Adjust sensitivity for initial touch
-        separation_threshold = 20  # Adjust sensitivity for separation
+        initial_touch_threshold = 25  # Adjust sensitivity for initial touch
+        separation_threshold = 25  # Adjust sensitivity for separation
 
         hand_start_position = None
         tap_detected = False
