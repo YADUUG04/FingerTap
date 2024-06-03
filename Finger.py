@@ -109,7 +109,7 @@ def main():
         tap_data = []
         tap_timestamps = []  # List to store timestamps of each tap
 
-                # Thresholds
+        # Thresholds
         initial_touch_threshold = 50  # Adjust sensitivity for initial touch
         separation_threshold = 50  # Adjust sensitivity for separation
 
@@ -160,7 +160,7 @@ def main():
                                 distance_pixels = calculate_distance(thumb_tip, index_tip)
                                 distance_cm = distance_pixels * 0.1  # Placeholder conversion factor (adjust as needed)
 
-                                # Format the distance value
+                                                                # Format the distance value
                                 distance_formatted = "{:.2f} cm".format(distance_cm)  # Example format: two decimal places
 
                                 # Tap detection logic
@@ -224,7 +224,10 @@ def main():
             writer.writeheader()
             for i, row in enumerate(tap_data):
                 row['Tap Duration'] = tap_durations[i] if i < len(tap_durations) else None
-                        avg_distance = np.mean([tap['Distance (cm)'] for tap in tap_data])
+                writer.writerow(row)
+
+        # Calculate average distance, time, and speed
+        avg_distance = np.mean([tap['Distance (cm)'] for tap in tap_data])
         avg_time = np.mean(tap_durations) if tap_durations else 0
         avg_speed = np.mean(tap_speeds) if tap_speeds else 0
 
@@ -236,3 +239,5 @@ def main():
         st.markdown(f"Download [CSV](./{csv_file_path})")
         st.markdown(f"Download [PDF Report](./{pdf_file_path})")
 
+if __name__ == "__main__":
+    main()
