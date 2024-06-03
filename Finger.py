@@ -150,7 +150,7 @@ def main():
                                     plt.close(fig)  # Close the figure to release memory
 
                 stframe.image(img, channels="BGR")
-      finally:
+        finally:
             cap.release()  # Release the video capture object
             
             try:
