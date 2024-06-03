@@ -22,7 +22,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Initialize Mediapipe Hands
 mpHands = mp.solutions.hands
-hands = mpHands.Hands(min_detection_confidence=0.2, min_tracking_confidence=0.2, max_num_hands=2)
+hands = mpHands.Hands(min_detection_confidence=0.2, min_tracking_confidence=0.2, max_num_hands=1)
 mpDraw = mp.solutions.drawing_utils
 
 # Define a function to calculate the distance between two points
@@ -152,7 +152,6 @@ def main():
             stframe.image(img, channels="BGR")
 
         cap.release()
-        cv2.destroyAllWindows()
 
         # Calculate the time of each individual tap and the speed
         tap_durations = []
@@ -218,36 +217,4 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
     c.drawString(50, height - 120, f"Sex: {sex}")
 
     # Add the average statistics
-    c.drawString(50, height - 160, f"Average Distance: {avg_distance:.2f} cm")
-    c.drawString(50, height - 180, f"Average Time per Tap: {avg_time:.2f} s")
-    c.drawString(50, height - 200, f"Average Speed: {avg_speed:.2f} cm/s")
-
-    # Add the graph
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmpfile:
-        fig, ax = plt.subplots()
-        ax.plot(speeds_graph, color='b')
-        ax.set_title('Finger Tap Distance Over Time')
-        ax.set_xlabel('Frames')
-        ax.set_ylabel('Distance (pixels)')
-        fig.savefig(tmpfile.name)
-        plt.close(fig)
-        c.drawImage(tmpfile.name, 50, height - 400, width=500, height=200)
-
-    # Add the detailed data table
-    c.drawString(50, height - 440, "Detailed Data:")
-    y = height - 460
-    for tap in tap_data:
-        if y < 50:
-            c.showPage()
-            y = height - 50
-        tap_duration = tap.get('Tap Duration', 'N/A')
-        tap_speed = tap.get('Speed (cm/s)', 'N/A')
-        tap_duration_str = f"{tap_duration:.2f} s" if isinstance(tap_duration, (int, float)) else "N/A"
-        tap_speed_str = f"{tap_speed:.2f} cm/s" if isinstance(tap_speed, (int, float)) else "N/A"
-        c.drawString(50, y, f"Tap {tap['Tap Count']}: Distance = {tap['Distance (cm)']:.2f} cm, Duration = {tap_duration_str}, Speed = {tap_speed_str}")
-        y -= 20
-
-    c.save()
-
-if __name__ == "__main__":
-    main()
+    c.drawString(50, height - 160, f"Average Distance:
