@@ -47,7 +47,6 @@ def main():
     st.header("Upload Video for Analysis")
     video_file = st.file_uploader("Upload a video file", type=["mp4"])
     start_button = st.button("Start Analysis")
-    stop_button = st.button("Stop Analysis")
 
     if video_file is not None and start_button:
         # Save the uploaded file to disk
@@ -75,7 +74,7 @@ def main():
 
         fig, ax = plt.subplots()  # Create figure and axis objects
 
-        while cap.isOpened() and not stop_button:
+        while cap.isOpened():
             success, img = cap.read()
             if not success:
                 st.warning("No frame to read from the video. Exiting.")
