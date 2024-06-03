@@ -152,7 +152,11 @@ def main():
                 stframe.image(img, channels="BGR")
         finally:
             cap.release()  # Release the video capture object
-            cv2.destroyAllWindows()  # Close all OpenCV windows
+            try:
+    cv2.destroyAllWindows()  # Close all OpenCV windows
+except cv2.error as e:
+    print("Error occurred while closing OpenCV windows:", e)
+
 
 if __name__ == "__main__":
     main()
