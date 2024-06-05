@@ -34,6 +34,8 @@ def authenticate(username, password):
     # Simple authentication logic (replace with your own logic)
     if username == "admin" and password == "password":
         return True
+    if username == "Kumar" and password == "password":
+        return True
     return False
 
 # Define Streamlit app
