@@ -29,8 +29,31 @@ mpDraw = mp.solutions.drawing_utils
 def calculate_distance(point1, point2):
     return hypot(point2[0] - point1[0], point2[1] - point1[1])
 
+# Authentication function
+def authenticate(username, password):
+    # Simple authentication logic (replace with your own logic)
+    if username == "admin" and password == "password":
+        return True
+    return False
+
 # Define Streamlit app
 def main():
+    # User authentication
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
+    
+    if not st.session_state.authenticated:
+        st.title("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if authenticate(username, password):
+                st.session_state.authenticated = True
+                st.success("Logged in successfully")
+            else:
+                st.error("Invalid username or password")
+        return
+
     st.title("Finger Tap Detection")
 
     # User registration
@@ -209,7 +232,7 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
     c = canvas.Canvas(pdf_file_path, pagesize=letter)
     width, height = letter
 
-    # Title and user information
+        # Title and user information
     c.setFont("Helvetica-Bold", 16)
     c.drawString(200, height - 40, "Finger Tap Detection Report")
     c.setFont("Helvetica", 12)
@@ -251,3 +274,4 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
 
 if __name__ == "__main__":
     main()
+
