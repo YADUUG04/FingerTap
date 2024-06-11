@@ -70,7 +70,7 @@ def main():
 
     # Get user input for video file upload
     st.header("Upload Video for Analysis")
-    video_file = st.file_uploader("Upload a video file", type=["mp4"])
+    video_file = st.file_uploader("Upload a video file", type=["mp4", "mov"])
     start_button = st.button("Start Analysis")
 
     if video_file is not None and start_button:
@@ -276,4 +276,3 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
 
 if __name__ == "__main__":
     main()
-
