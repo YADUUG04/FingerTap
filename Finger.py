@@ -9,6 +9,7 @@ from math import hypot
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 import tempfile
+import os
 
 # Hiding Streamlit style
 hide_st_style = """
@@ -74,11 +75,12 @@ def main():
     start_button = st.button("Start Analysis")
 
     if video_file is not None and start_button:
-        # Save the uploaded file to disk
-        with open("uploaded_video.mp4", "wb") as f:
-            f.write(video_file.read())
+        # Save the uploaded file to a temporary file
+        temp_video_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
+        temp_video_file.write(video_file.read())
+        temp_video_file.close()
 
-        cap = cv2.VideoCapture("uploaded_video.mp4")  # Use the file path as input to VideoCapture
+        cap = cv2.VideoCapture(temp_video_file.name)  # Use the temp file path as input to VideoCapture
 
         stframe = st.empty()
         graph_placeholder = st.empty()
@@ -230,11 +232,16 @@ def main():
             mime="application/pdf"
         )
 
+        # Clean up temporary files
+        os.remove(temp_video_file.name)
+        os.remove(csv_file_path)
+        os.remove(pdf_file_path)
+
 def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, avg_distance, avg_time, avg_speed):
     c = canvas.Canvas(pdf_file_path, pagesize=letter)
     width, height = letter
 
-        # Title and user information
+    # Title and user information
     c.setFont("Helvetica-Bold", 16)
     c.drawString(200, height - 40, "Finger Tap Detection Report")
     c.setFont("Helvetica", 12)
@@ -257,6 +264,8 @@ def generate_pdf_report(pdf_file_path, name, age, sex, tap_data, speeds_graph, a
         fig.savefig(tmpfile.name)
         plt.close(fig)
         c.drawImage(tmpfile.name, 50, height - 400, width=500, height=200)
+        tmpfile.close()
+        os.remove(tmpfile.name)  # Remove the temporary file
 
     # Add the detailed data table
     c.drawString(50, height - 440, "Detailed Data:")
