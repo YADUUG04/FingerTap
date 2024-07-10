@@ -1,0 +1,27 @@
+name: Push Repository
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Create dummy file
+      run: |
+        touch dummyfile.txt
+        git add dummyfile.txt
+        git commit -m "Automated push: $(date)"
+        git push origin main
+
+    - name: Remove dummy file
+      run: |
+        git rm dummyfile.txt
+        git commit -m "Remove dummy file"
+        git push origin main
+
